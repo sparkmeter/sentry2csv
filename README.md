@@ -2,7 +2,7 @@
 
 **Requires Python 3.7+**
 
-Dumps sentry issues to CSV for further analysis.
+Dump Sentry issues to CSV for further analysis.
 
 ## Use
 
