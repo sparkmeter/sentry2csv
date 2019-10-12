@@ -13,7 +13,7 @@ setup(
     name="sentry2csv",
     author="SparkMeter",
     author_email="aru.sahni@sparkmeter.io",
-    version="1.0a0",
+    version="1.0a1",
     packages=["sentry2csv"],
     description="Export Sentry issues to CSV for further analysis",
     long_description=LONG_DESCRIPTION,
