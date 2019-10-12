@@ -9,7 +9,7 @@ REQUIREMENTS = [
 setup(
     name="sentry2csv",
     author="SparkMeter",
-    version="1.0.0",
+    version="1.0a0",
     packages=["sentry2csv"],
     license="License :: OSI Approved :: MIT License",
     install_requires=REQUIREMENTS,
