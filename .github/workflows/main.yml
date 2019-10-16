@@ -1,0 +1,25 @@
+
+name: lint
+on:
+  push:
+    branches:
+      - master
+    pull_request:
+      branches:
+        - master
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Python 3.7
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+      - name: Setup project with pip
+        run: pip install .
+      - name: Install Pylint
+        run: pip install pylint
+      - name: Run Pylint
+        run: pylint sentry2csv/sentry2csv.py
