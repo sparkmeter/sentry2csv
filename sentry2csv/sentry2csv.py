@@ -6,7 +6,7 @@ import asyncio
 import csv
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import aiohttp
 
@@ -29,7 +29,7 @@ class Enrichment:
 
 async def fetch(
     session: aiohttp.ClientSession, url: str, params=None
-) -> Tuple[Dict[str, Any], Dict["str", "str"]]:
+) -> Tuple[Union[List[Dict[str, Any]], Dict[str, Any]], Dict[str, Dict[str, str]]]:
     """Fetch JSON from a URL."""
     async with session.get(url, params=params) as response:
         return await response.json(), response.links
@@ -43,6 +43,7 @@ async def enrich_issue(
     issue["_enrichments"] = {}
     for enrichment in enrichments:
         try:
+            assert isinstance(event, dict), f"Bad response type. Expected dict, got {type(event)}"
             issue["_enrichments"][enrichment.csv_field] = event.get(enrichment.sentry_path[0], {})
             for step in enrichment.sentry_path[1:]:
                 issue["_enrichments"][enrichment.csv_field] = issue["_enrichments"][enrichment.csv_field].get(
@@ -52,16 +53,17 @@ async def enrich_issue(
             raise RuntimeError("Could not enrich record") from kerr
 
 
-async def fetch_issues(session: aiohttp.ClientSession, issues_url: str) -> List[dict]:
+async def fetch_issues(session: aiohttp.ClientSession, issues_url: str) -> List[Dict[str, Any]]:
     """Fetch all issues from Sentry."""
     page_count = 1
-    issues = []
+    issues: List[Dict[str, Any]] = []
     cursor = ""
     while True:
         print(f"Fetching issues page {page_count}")
         resp, links = await fetch(
             session, issues_url, params={"cursor": cursor, "statsPeriod": "", "query": "is:unresolved"}
         )
+        assert isinstance(resp, list), f"Bad response type. Expected list, got {type(resp)}"
         issues.extend(resp)
         if links.get("next", {}).get("results") != "true":
             break
@@ -70,7 +72,7 @@ async def fetch_issues(session: aiohttp.ClientSession, issues_url: str) -> List[
     return issues
 
 
-def write_csv(filename: str, issues: List[Dict[str, str]]):
+def write_csv(filename: str, issues: List[Dict[str, Any]]):
     """Write Sentry issues to CSV."""
     fieldnames = ["Error", "Location", "Details", "Events", "Users", "Notes", "Link"]
     if issues and "_enrichments" in issues[0]:

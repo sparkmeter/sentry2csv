@@ -19,5 +19,9 @@ jobs:
           python-version: 3.7
       - name: Setup project with pip
         run: "pip install -e .[dev]"
-      - name: Run Pylint
+      - name: Check formatting
+        run: black --check sentry2csv
+      - name: Lint code
         run: pylint sentry2csv
+      - name: Check typings
+        run: mypy sentry2csv
