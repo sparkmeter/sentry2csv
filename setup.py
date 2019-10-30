@@ -1,5 +1,8 @@
 """Sentry Exporter."""
 
+import codecs
+import os
+import re
 from setuptools import setup
 
 with open("README.md", "r") as README:
@@ -9,11 +12,29 @@ REQUIREMENTS = [
     "aiohttp==3.6.1",
 ]
 
+HERE = os.path.abspath(os.path.dirname(__file__))
+
+
+def read(*parts):
+    """Read the file at the given path."""
+    with codecs.open(os.path.join(HERE, *parts), "r") as readfile:
+        return readfile.read()
+
+
+def find_version(*file_paths):
+    """Extract the version from the file at the given path."""
+    version_file = read(*file_paths)
+    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", version_file, re.M)
+    if version_match:
+        return version_match.group(1)
+    raise RuntimeError("Unable to find version string.")
+
+
 setup(
     name="sentry2csv",
     author="SparkMeter",
     author_email="aru.sahni@sparkmeter.io",
-    version="1.0a1",
+    version=find_version("sentry2csv", "__init__.py"),
     packages=["sentry2csv"],
     description="Export Sentry issues to CSV for further analysis",
     long_description=LONG_DESCRIPTION,

@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import aiohttp
+import pkg_resources  # part of setuptools
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +123,9 @@ def extract_enrichment(mappings: Optional[str]) -> List[Enrichment]:
 
 def main():
     """Do the thing."""
+    version = pkg_resources.require("sentry2csv")[0].version
     parser = argparse.ArgumentParser(description="Export a Sentry project's issues to CSV")
+    parser.add_argument("--version", action="version", version=version)
     parser.add_argument("--enrich", help="Optional mappings of event metadata")
     parser.add_argument("token", metavar="API_TOKEN", nargs=1, help="The Sentry API token")
     parser.add_argument("organization", metavar="ORGANIZATION", nargs=1, help="The Sentry organization")
