@@ -1,5 +1,7 @@
 # sentry2csv
 
+![](https://github.com/sparkmeter/sentry2csv/workflows/build/badge.svg)
+
 **Requires Python 3.7+**
 
 Dump Sentry issues to CSV for further analysis.
