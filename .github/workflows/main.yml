@@ -25,3 +25,5 @@ jobs:
         run: pylint sentry2csv
       - name: Check typings
         run: mypy sentry2csv
+      - name: Run tests
+        run: pytest --cov sentry2csv --cov-report=term-missing tests/
