@@ -43,15 +43,12 @@ async def enrich_issue(
     event, _ = await fetch(session, f'https://sentry.io/api/0/issues/{issue["id"]}/events/latest/')
     issue["_enrichments"] = {}
     for enrichment in enrichments:
-        try:
-            assert isinstance(event, dict), f"Bad response type. Expected dict, got {type(event)}"
-            issue["_enrichments"][enrichment.csv_field] = event.get(enrichment.sentry_path[0], {})
-            for step in enrichment.sentry_path[1:]:
-                issue["_enrichments"][enrichment.csv_field] = issue["_enrichments"][enrichment.csv_field].get(
-                    step, {}
-                )
-        except KeyError as kerr:
-            raise RuntimeError("Could not enrich record") from kerr
+        assert isinstance(event, dict), f"Bad response type. Expected dict, got {type(event)}: {event}"
+        issue["_enrichments"][enrichment.csv_field] = event.get(enrichment.sentry_path[0], {})
+        for step in enrichment.sentry_path[1:]:
+            issue["_enrichments"][enrichment.csv_field] = issue["_enrichments"][enrichment.csv_field].get(step, {})
+        if issue["_enrichments"][enrichment.csv_field] == {}:
+            issue["_enrichments"][enrichment.csv_field] = ""
 
 
 async def fetch_issues(session: aiohttp.ClientSession, issues_url: str) -> List[Dict[str, Any]]:
@@ -134,7 +131,3 @@ def main():
     enrichments = extract_enrichment(args.enrich)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(export(args.token[0], args.organization[0], args.project[0], enrich=enrichments))
-
-
-if __name__ == "__main__":
-    main()

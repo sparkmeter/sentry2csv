@@ -57,10 +57,16 @@ setup(
     },
     extras_require={
         "dev": [
+            "aioresponses==0.6.1",
+            "asynctest==0.13.0",
             "black==19.3b0",
             "mypy==0.730",
             "mypy-extensions==0.4.2",
             "pylint==2.4.2",
+            "pytest==5.2.2",
+            "pytest-asyncio==0.10.0",
+            "pytest-cov==2.8.1",
+            "pytest-mock==1.11.2",
         ]
     },
     python_requires=">=3.7",
