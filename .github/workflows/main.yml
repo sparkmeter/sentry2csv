@@ -8,9 +8,8 @@ on:
     branches:
       - master
 jobs:
-  lint:
+  build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v1
       - name: Set up Python 3.7

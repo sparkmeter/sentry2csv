@@ -1,6 +1,6 @@
 # sentry2csv
 
-![](https://github.com/sparkmeter/sentry2csv/workflows/build/badge.svg)
+![](https://github.com/sparkmeter/sentry2csv/workflows/lint/badge.svg)
 ![](https://img.shields.io/pypi/v/sentry2csv)
 ![](https://img.shields.io/pypi/pyversions/sentry2csv)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
