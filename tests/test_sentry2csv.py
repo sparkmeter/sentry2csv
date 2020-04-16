@@ -34,6 +34,16 @@ async def test_fetch_basic(session):
 
 
 @pytest.mark.asyncio
+async def test_fetch_auth_error(session):
+    """A permission denied error."""
+    with aioresponses() as mock_session:
+        mock_session.get("http://www.sentry.io/testurl", status=403, payload={'detail': 'You do not have permission to perform this action.'})
+        with pytest.raises(sentry2csv.Sentry2CSVException) as excinfo:
+            await sentry2csv.fetch(session, "http://www.sentry.io/testurl")
+        assert "access denied" in str(excinfo.value)
+
+
+@pytest.mark.asyncio
 async def test_fetch_with_link(session):
     """Test fetching."""
     with aioresponses() as mock_session:
