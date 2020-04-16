@@ -15,6 +15,13 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 
 
+class Sentry2CSVException(Exception):
+    """A handled exception."""
+
+    def __init__(self, message):
+        self.message = message
+
+
 @dataclass
 class Enrichment:
     """An enrichment."""
@@ -35,6 +42,9 @@ async def fetch(
     """Fetch JSON from a URL."""
     logger.debug("Fetching %s with params: %s", url, params)
     async with session.get(url, params=params) as response:
+        logger.debug("Received response: %s", response)
+        if response.status == 403:
+            raise Sentry2CSVException(f"Failed to query Sentry: access denied.")
         return await response.json(), response.links
 
 
@@ -100,15 +110,18 @@ async def export(token: str, organization: str, project: str, enrich: Optional[L
     enrichments: List[Enrichment] = enrich or []
     issues_url = f"https://sentry.io/api/0/projects/{organization}/{project}/issues/"
     async with aiohttp.ClientSession(headers={"Authorization": f"Bearer {token}"}) as session:
-        issues = await fetch_issues(session, issues_url)
-        if enrichments:
-            print(f"Enriching {len(issues)} issues with event data...")
-            await asyncio.gather(
-                *[asyncio.ensure_future(enrich_issue(session, issue, enrichments)) for issue in issues]
-            )
-        outfile = f"{organization}-{project}-export.csv"
-        write_csv(outfile, issues)
-        print(f"Exported to {outfile}")
+        try:
+            issues = await fetch_issues(session, issues_url)
+            if enrichments:
+                print(f"Enriching {len(issues)} issues with event data...")
+                await asyncio.gather(
+                    *[asyncio.ensure_future(enrich_issue(session, issue, enrichments)) for issue in issues]
+                )
+            outfile = f"{organization}-{project}-export.csv"
+            write_csv(outfile, issues)
+            print(f"Exported to {outfile}")
+        except Sentry2CSVException as err:
+            print(f"Export failed. {err.message}")
 
 
 def extract_enrichment(mappings: Optional[str]) -> List[Enrichment]:
