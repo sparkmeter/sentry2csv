@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import aiohttp
 import pkg_resources  # part of setuptools
 
+logging.basicConfig()
 logger = logging.getLogger(__name__)
 
 
@@ -32,6 +33,7 @@ async def fetch(
     session: aiohttp.ClientSession, url: str, params=None
 ) -> Tuple[Union[List[Dict[str, Any]], Dict[str, Any]], Dict[str, Dict[str, str]]]:
     """Fetch JSON from a URL."""
+    logger.debug("Fetching %s with params: %s", url, params)
     async with session.get(url, params=params) as response:
         return await response.json(), response.links
 
@@ -61,6 +63,7 @@ async def fetch_issues(session: aiohttp.ClientSession, issues_url: str) -> List[
         resp, links = await fetch(
             session, issues_url, params={"cursor": cursor, "statsPeriod": "", "query": "is:unresolved"}
         )
+        logger.debug("Received page %s", resp)
         assert isinstance(resp, list), f"Bad response type. Expected list, got {type(resp)}"
         issues.extend(resp)
         if links.get("next", {}).get("results") != "true":
@@ -122,12 +125,19 @@ def main():
     """Do the thing."""
     version = pkg_resources.require("sentry2csv")[0].version
     parser = argparse.ArgumentParser(description="Export a Sentry project's issues to CSV")
+    parser.add_argument("-v", "--verbose", default=0, action="count", help="Increase the log verbosity.")
     parser.add_argument("--version", action="version", version=version)
     parser.add_argument("--enrich", help="Optional mappings of event metadata")
     parser.add_argument("--token", metavar="API_TOKEN", nargs=1, required=True, help="The Sentry API token")
     parser.add_argument("organization", metavar="ORGANIZATION", nargs=1, help="The Sentry organization")
     parser.add_argument("project", metavar="PROJECT", nargs=1, help="The Sentry project")
     args = parser.parse_args()
+    if args.verbose > 1:
+        logger.setLevel(logging.DEBUG)
+    elif args.verbose == 1:
+        logger.setLevel(logging.INFO)
+    else:
+        logger.setLevel(logging.WARNING)
     enrichments = extract_enrichment(args.enrich)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(export(args.token[0], args.organization[0], args.project[0], enrich=enrichments))
