@@ -5,6 +5,7 @@ import argparse
 import asyncio
 import csv
 import logging
+import sys
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 class Sentry2CSVException(Exception):
     """A handled exception."""
 
-    def __init__(self, message):
+    def __init__(self, message):  # pylint: disable=super-init-not-called
         self.message = message
 
 
@@ -92,17 +93,21 @@ def write_csv(filename: str, issues: List[Dict[str, Any]]):
         writer = csv.DictWriter(outfile, fieldnames=fieldnames)
         writer.writeheader()
         for issue in issues:
-            row = {
-                "Error": issue["metadata"]["type"],
-                "Location": issue["culprit"],
-                "Details": issue["metadata"]["value"],
-                "Events": issue["count"],
-                "Users": issue["userCount"],
-                "Notes": "",
-                "Link": issue["permalink"],
-            }
-            row = {**row, **issue.get("_enrichments", {})}
-            writer.writerow(row)
+            try:
+                row = {
+                    "Error": issue["metadata"]["type"],
+                    "Location": issue["culprit"],
+                    "Details": issue["metadata"]["value"],
+                    "Events": issue["count"],
+                    "Users": issue["userCount"],
+                    "Notes": "",
+                    "Link": issue["permalink"],
+                }
+                row = {**row, **issue.get("_enrichments", {})}
+                writer.writerow(row)
+            except KeyError as kerr:
+                logger.debug("Failed to process row, missing key: %s\n%s", kerr, issue)
+                raise Sentry2CSVException(f"Unexpected API response. Run with -vv to debug.") from kerr
 
 
 async def export(token: str, organization: str, project: str, enrich: Optional[List[Enrichment]] = None):
@@ -122,6 +127,7 @@ async def export(token: str, organization: str, project: str, enrich: Optional[L
             print(f"Exported to {outfile}")
         except Sentry2CSVException as err:
             print(f"Export failed. {err.message}")
+            sys.exit(1)
 
 
 def extract_enrichment(mappings: Optional[str]) -> List[Enrichment]:

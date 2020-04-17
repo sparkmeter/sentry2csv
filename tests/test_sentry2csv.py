@@ -37,7 +37,11 @@ async def test_fetch_basic(session):
 async def test_fetch_auth_error(session):
     """A permission denied error."""
     with aioresponses() as mock_session:
-        mock_session.get("http://www.sentry.io/testurl", status=403, payload={'detail': 'You do not have permission to perform this action.'})
+        mock_session.get(
+            "http://www.sentry.io/testurl",
+            status=403,
+            payload={"detail": "You do not have permission to perform this action."},
+        )
         with pytest.raises(sentry2csv.Sentry2CSVException) as excinfo:
             await sentry2csv.fetch(session, "http://www.sentry.io/testurl")
         assert "access denied" in str(excinfo.value)
@@ -217,14 +221,41 @@ def test_write_csv_with_enrichments(mocker):
     ]
 
 
+def test_write_csv_with_errors(mocker):
+    """Test CSV export with enrichments."""
+    open_patch = mocker.patch("builtins.open", mock_open())
+    output_buffer = StringIO()
+    open_patch.return_value.__enter__.return_value = output_buffer
+    with pytest.raises(sentry2csv.Sentry2CSVException) as excinfo:
+        sentry2csv.write_csv(
+            "outfile.csv",
+            [
+                {
+                    "metadata": {"value": "explanation of warning"},
+                    "culprit": "culprit body",
+                    "count": 123,
+                    "userCount": 3,
+                    "permalink": "https://sentry.io/warning/warning_details",
+                    "_enrichments": {"Extra Field": 12, "Another Field": "ANOTHER FIELD"},
+                },
+                {
+                    "metadata": {"type": "error", "value": "explanation of error"},
+                    "culprit": "culprit body",
+                    "count": 12,
+                    "userCount": 10,
+                    "permalink": "https://sentry.io/error/error_details",
+                    "_enrichments": {"Extra Field": "Mixed Content", "Another Field": "yup"},
+                },
+            ],
+        )
+    assert "Run with -vv to debug" in str(excinfo.value)
+
+
 @pytest.mark.asyncio
 async def test_export(mocker):
     """Test the export function."""
     fetch_issues_mock = mocker.patch("sentry2csv.sentry2csv.fetch_issues", new=CoroutineMock())
-    fetch_issues_mock.return_value = [
-        "issue1",
-        "issue2",
-    ]
+    fetch_issues_mock.return_value = ["issue1", "issue2"]
     write_mock = mocker.patch("sentry2csv.sentry2csv.write_csv")
     await sentry2csv.export("token", "organization", "project")
     fetch_issues_mock.assert_awaited_once()
@@ -236,14 +267,13 @@ async def test_export(mocker):
 @pytest.mark.asyncio
 async def test_export_with_enrichments(mocker):
     """Test the export function."""
+
     async def enrich_issue_fn(ses, issue_to_enrich, enrs):
         """Enrich the issue."""
         issue_to_enrich["_enriched"] = True
+
     fetch_issues_mock = mocker.patch("sentry2csv.sentry2csv.fetch_issues", new=CoroutineMock())
-    fetch_issues_mock.return_value = [
-        {"value": "issue1"},
-        {"value": "issue2"},
-    ]
+    fetch_issues_mock.return_value = [{"value": "issue1"}, {"value": "issue2"}]
     enrich_issue_mock = mocker.patch("sentry2csv.sentry2csv.enrich_issue", new=CoroutineMock())
     enrich_issue_mock.side_effect = enrich_issue_fn
     write_mock = mocker.patch("sentry2csv.sentry2csv.write_csv")
@@ -251,4 +281,7 @@ async def test_export_with_enrichments(mocker):
     fetch_issues_mock.assert_awaited_once()
     assert isinstance(fetch_issues_mock.call_args[0][0], aiohttp.client.ClientSession)
     assert fetch_issues_mock.call_args[0][1] == "https://sentry.io/api/0/projects/organization/project/issues/"
-    write_mock.assert_called_once_with("organization-project-export.csv", [{"value": "issue1", "_enriched": True}, {"value": "issue2", "_enriched": True}])
+    write_mock.assert_called_once_with(
+        "organization-project-export.csv",
+        [{"value": "issue1", "_enriched": True}, {"value": "issue2", "_enriched": True}],
+    )
