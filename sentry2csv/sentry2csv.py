@@ -94,10 +94,26 @@ def write_csv(filename: str, issues: List[Dict[str, Any]]):
         writer.writeheader()
         for issue in issues:
             try:
+                # mapping from
+                #  https://github.com/getsentry/sentry/blob/9910cc917d2def63b110e75d4d17dedf7f415f58/src/sentry/static/sentry/app/utils/events.tsx#L7  # pylint: disable=line-too-long
+                issue_type = issue["type"]
+                if issue_type == "error":
+                    error = issue["metadata"]["type"]
+                    details = issue["metadata"]["value"]
+                elif issue_type == "csp":
+                    error = "csp"
+                    details = issue["metadata"]["message"]
+                elif issue_type == "default":
+                    error = "default"
+                    details = issue["metadata"].get("title", "")
+                else:
+                    logger.debug("Unknown issue type: %s\n%s", issue_type, issue)
+                    error = issue_type
+                    details = ""
                 row = {
-                    "Error": issue["metadata"]["type"],
+                    "Error": error,
                     "Location": issue["culprit"],
-                    "Details": issue["metadata"]["value"],
+                    "Details": details,
                     "Events": issue["count"],
                     "Users": issue["userCount"],
                     "Notes": "",

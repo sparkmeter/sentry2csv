@@ -1,4 +1,5 @@
 """Test te Sentry project."""
+# pylint: disable=line-too-long
 
 from io import StringIO
 from unittest.mock import call, mock_open
@@ -167,6 +168,7 @@ def test_write_csv(mocker):
                 "count": 123,
                 "userCount": 3,
                 "permalink": "https://sentry.io/warning/warning_details",
+                "type": "error",
             },
             {
                 "metadata": {"type": "error", "value": "explanation of error"},
@@ -174,6 +176,32 @@ def test_write_csv(mocker):
                 "count": 12,
                 "userCount": 10,
                 "permalink": "https://sentry.io/error/error_details",
+                "type": "error",
+            },
+            {
+                "metadata": {"message": "a CSP error"},
+                "culprit": "culprit body",
+                "count": 12,
+                "userCount": 10,
+                "permalink": "https://sentry.io/error/error_details",
+                "type": "csp",
+            },
+            {
+                "metadata": {},
+                "culprit": "culprit body",
+                "count": 12,
+                "userCount": 10,
+                "permalink": "https://sentry.io/error/error_details",
+                "type": "hpkp",
+            },
+            {
+                "metadata": {"title": "successful JS title"},
+                "culprit": "https://www.example.com/culprit/path",
+                "count": 12,
+                "userCount": 10,
+                "permalink": "https://sentry.io/error/error_details",
+                "type": "default",
+                "platform": "javascript",
             },
         ],
     )
@@ -182,6 +210,9 @@ def test_write_csv(mocker):
         "Error,Location,Details,Events,Users,Notes,Link\r",
         "warning,culprit body,explanation of warning,123,3,,https://sentry.io/warning/warning_details\r",
         "error,culprit body,explanation of error,12,10,,https://sentry.io/error/error_details\r",
+        "csp,culprit body,a CSP error,12,10,,https://sentry.io/error/error_details\r",
+        "hpkp,culprit body,,12,10,,https://sentry.io/error/error_details\r",
+        "default,https://www.example.com/culprit/path,successful JS title,12,10,,https://sentry.io/error/error_details\r",
         "",
     ]
 
@@ -196,6 +227,7 @@ def test_write_csv_with_enrichments(mocker):
         [
             {
                 "metadata": {"type": "warning", "value": "explanation of warning"},
+                "type": "error",
                 "culprit": "culprit body",
                 "count": 123,
                 "userCount": 3,
@@ -204,6 +236,7 @@ def test_write_csv_with_enrichments(mocker):
             },
             {
                 "metadata": {"type": "error", "value": "explanation of error"},
+                "type": "error",
                 "culprit": "culprit body",
                 "count": 12,
                 "userCount": 10,
@@ -268,7 +301,7 @@ async def test_export(mocker):
 async def test_export_with_enrichments(mocker):
     """Test the export function."""
 
-    async def enrich_issue_fn(ses, issue_to_enrich, enrs):
+    async def enrich_issue_fn(ses, issue_to_enrich, enrs):  # pylint: disable=unused-argument
         """Enrich the issue."""
         issue_to_enrich["_enriched"] = True
 
