@@ -98,7 +98,7 @@ def write_csv(filename: str, issues: List[Dict[str, Any]]):
                 #  https://github.com/getsentry/sentry/blob/9910cc917d2def63b110e75d4d17dedf7f415f58/src/sentry/static/sentry/app/utils/events.tsx#L7  # pylint: disable=line-too-long
                 issue_type = issue["type"]
                 if issue_type == "error":
-                    error = issue["metadata"]["type"]
+                    error = issue["metadata"].get("type", issue_type)  # get more specific if we can
                     details = issue["metadata"]["value"]
                 elif issue_type == "csp":
                     error = "csp"

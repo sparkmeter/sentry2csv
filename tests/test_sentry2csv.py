@@ -179,6 +179,14 @@ def test_write_csv(mocker):
                 "type": "error",
             },
             {
+                "metadata": {"value": "explanation of error"},
+                "culprit": "culprit body",
+                "count": 12,
+                "userCount": 10,
+                "permalink": "https://sentry.io/error/error_details",
+                "type": "error",
+            },
+            {
                 "metadata": {"message": "a CSP error"},
                 "culprit": "culprit body",
                 "count": 12,
@@ -209,6 +217,7 @@ def test_write_csv(mocker):
     assert output_buffer.getvalue().split("\n") == [
         "Error,Location,Details,Events,Users,Notes,Link\r",
         "warning,culprit body,explanation of warning,123,3,,https://sentry.io/warning/warning_details\r",
+        "error,culprit body,explanation of error,12,10,,https://sentry.io/error/error_details\r",
         "error,culprit body,explanation of error,12,10,,https://sentry.io/error/error_details\r",
         "csp,culprit body,a CSP error,12,10,,https://sentry.io/error/error_details\r",
         "hpkp,culprit body,,12,10,,https://sentry.io/error/error_details\r",
