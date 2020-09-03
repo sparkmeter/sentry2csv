@@ -310,7 +310,7 @@ async def test_export(mocker):
 async def test_export_with_enrichments(mocker):
     """Test the export function."""
 
-    async def enrich_issue_fn(ses, issue_to_enrich, enrs):  # pylint: disable=unused-argument
+    async def enrich_issue_fn(ses, issue_to_enrich, enrs, host):  # pylint: disable=unused-argument
         """Enrich the issue."""
         issue_to_enrich["_enriched"] = True
 

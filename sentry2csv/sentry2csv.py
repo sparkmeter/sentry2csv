@@ -12,6 +12,8 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import aiohttp
 import pkg_resources  # part of setuptools
 
+from .constant import SENTRY_HOST
+
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 
@@ -45,15 +47,18 @@ async def fetch(
     async with session.get(url, params=params) as response:
         logger.debug("Received response: %s", response)
         if response.status == 403:
-            raise Sentry2CSVException(f"Failed to query Sentry: access denied.")
+            raise Sentry2CSVException("Failed to query Sentry: access denied.")
         return await response.json(), response.links
 
 
 async def enrich_issue(
-    session: aiohttp.ClientSession, issue: Dict[str, Any], enrichments: List[Enrichment]
+    session: aiohttp.ClientSession,
+    issue: Dict[str, Any],
+    enrichments: List[Enrichment],
+    host: Optional[str] = SENTRY_HOST,
 ) -> None:
     """Enrich an issue with data from the latest event."""
-    event, _ = await fetch(session, f'https://sentry.io/api/0/issues/{issue["id"]}/events/latest/')
+    event, _ = await fetch(session, f'https://{host}/api/0/issues/{issue["id"]}/events/latest/')
     issue["_enrichments"] = {}
     for enrichment in enrichments:
         assert isinstance(event, dict), f"Bad response type. Expected dict, got {type(event)}: {event}"
@@ -123,20 +128,26 @@ def write_csv(filename: str, issues: List[Dict[str, Any]]):
                 writer.writerow(row)
             except KeyError as kerr:
                 logger.debug("Failed to process row, missing key: %s\n%s", kerr, issue)
-                raise Sentry2CSVException(f"Unexpected API response. Run with -vv to debug.") from kerr
+                raise Sentry2CSVException("Unexpected API response. Run with -vv to debug.") from kerr
 
 
-async def export(token: str, organization: str, project: str, enrich: Optional[List[Enrichment]] = None):
+async def export(
+    token: str,
+    organization: str,
+    project: str,
+    enrich: Optional[List[Enrichment]] = None,
+    host: Optional[str] = SENTRY_HOST,
+):
     """Export data from Sentry to CSV."""
     enrichments: List[Enrichment] = enrich or []
-    issues_url = f"https://sentry.io/api/0/projects/{organization}/{project}/issues/"
+    issues_url = f"https://{host}/api/0/projects/{organization}/{project}/issues/"
     async with aiohttp.ClientSession(headers={"Authorization": f"Bearer {token}"}) as session:
         try:
             issues = await fetch_issues(session, issues_url)
             if enrichments:
                 print(f"Enriching {len(issues)} issues with event data...")
                 await asyncio.gather(
-                    *[asyncio.ensure_future(enrich_issue(session, issue, enrichments)) for issue in issues]
+                    *[asyncio.ensure_future(enrich_issue(session, issue, enrichments, host)) for issue in issues]
                 )
             outfile = f"{organization}-{project}-export.csv"
             write_csv(outfile, issues)
@@ -164,6 +175,9 @@ def main():
     parser.add_argument("--version", action="version", version=version)
     parser.add_argument("--enrich", help="Optional mappings of event metadata")
     parser.add_argument("--token", metavar="API_TOKEN", nargs=1, required=True, help="The Sentry API token")
+    parser.add_argument(
+        "--host", metavar="HOST", nargs=1, required=False, help=f"The Sentry host [default: {SENTRY_HOST}]"
+    )
     parser.add_argument("organization", metavar="ORGANIZATION", nargs=1, help="The Sentry organization")
     parser.add_argument("project", metavar="PROJECT", nargs=1, help="The Sentry project")
     args = parser.parse_args()
@@ -175,4 +189,10 @@ def main():
         logger.setLevel(logging.WARNING)
     enrichments = extract_enrichment(args.enrich)
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(export(args.token[0], args.organization[0], args.project[0], enrich=enrichments))
+    loop.run_until_complete(
+        export(args.token[0], args.organization[0], args.project[0], enrich=enrichments, host=args.host[0])
+    )
+
+
+if __name__ == "__main__":
+    main()
