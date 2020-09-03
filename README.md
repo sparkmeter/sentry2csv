@@ -42,7 +42,7 @@ Alternatively, you can install sentry2csv using standard pip.
     * For example, `sentry2csv --token f9u3fdu821ed9j10sj19kjd991010 sparkmeter TopSecretProject13`
 
 This also accepts an optional `--enrich` flag. Enrichments augment issues with data from the latest event.
-An enrichment is in the form of `CSV Field Name=dotted.sentry.path`, and multiple enrichments are comma-separated.
+An enrichment is in the form of `dotted.sentry.path=CSV_Field_Name`, and multiple enrichments are comma-separated.
 
 ## Development
 1. Clone this repository
