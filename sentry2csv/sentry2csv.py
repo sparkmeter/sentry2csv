@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import aiohttp
 import pkg_resources  # part of setuptools
 
-from .constant import SENTRY_HOST
+SENTRY_HOST = "sentry.io"
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -52,10 +52,7 @@ async def fetch(
 
 
 async def enrich_issue(
-    session: aiohttp.ClientSession,
-    issue: Dict[str, Any],
-    enrichments: List[Enrichment],
-    host: Optional[str] = SENTRY_HOST,
+    session: aiohttp.ClientSession, issue: Dict[str, Any], enrichments: List[Enrichment], host: str = SENTRY_HOST
 ) -> None:
     """Enrich an issue with data from the latest event."""
     event, _ = await fetch(session, f'https://{host}/api/0/issues/{issue["id"]}/events/latest/')
@@ -132,11 +129,7 @@ def write_csv(filename: str, issues: List[Dict[str, Any]]):
 
 
 async def export(
-    token: str,
-    organization: str,
-    project: str,
-    enrich: Optional[List[Enrichment]] = None,
-    host: Optional[str] = SENTRY_HOST,
+    token: str, organization: str, project: str, enrich: Optional[List[Enrichment]] = None, host: str = SENTRY_HOST
 ):
     """Export data from Sentry to CSV."""
     enrichments: List[Enrichment] = enrich or []
@@ -176,7 +169,12 @@ def main():
     parser.add_argument("--enrich", help="Optional mappings of event metadata")
     parser.add_argument("--token", metavar="API_TOKEN", nargs=1, required=True, help="The Sentry API token")
     parser.add_argument(
-        "--host", metavar="HOST", nargs=1, required=False, help=f"The Sentry host [default: {SENTRY_HOST}]"
+        "--host",
+        metavar="HOST",
+        nargs=1,
+        required=False,
+        default=SENTRY_HOST,
+        help=f"The Sentry host [default: {SENTRY_HOST}]",
     )
     parser.add_argument("organization", metavar="ORGANIZATION", nargs=1, help="The Sentry organization")
     parser.add_argument("project", metavar="PROJECT", nargs=1, help="The Sentry project")
