@@ -294,6 +294,34 @@ def test_write_csv_with_errors(mocker):
 
 
 @pytest.mark.asyncio
+async def test_export_custom_host(mocker):
+    """Test export using custom Sentry host."""
+    custom_host = "sentry.example.com"
+    fetch_issues_mock = mocker.patch("sentry2csv.sentry2csv.fetch_issues", new=CoroutineMock())
+    await sentry2csv.export("token", "organization", "project", None, custom_host)
+    fetch_issues_mock.assert_awaited_once()
+    assert isinstance(fetch_issues_mock.call_args[0][0], aiohttp.client.ClientSession)
+    assert fetch_issues_mock.call_args[0][1] == f"https://{custom_host}/api/0/projects/organization/project/issues/"
+
+
+@pytest.mark.asyncio
+async def test_enrich_issue_custom_host(fetch_mock, session):
+    """Test issue enrichment using custom Sentry host."""
+    custom_host = "sentry.example.com"
+    fetch_mock.return_value = ({"packages": {"sentry2csv": {"version": "1.2.12"}}, "top_level_attr": 13}, {})
+    enrichments = [
+        sentry2csv.Enrichment.from_mapping_string(mapping)
+        for mapping in ("packages.sentry2csv.version=Sentry2CSV Version", "top_level_attr=Top Attr")
+    ]
+    issue = {"id": "issue_id"}
+    await sentry2csv.enrich_issue(session, issue, enrichments, custom_host)
+    fetch_mock.assert_awaited_once_with(session, f"https://{custom_host}/api/0/issues/issue_id/events/latest/")
+    assert "_enrichments" in issue
+    assert issue["_enrichments"]["Sentry2CSV Version"] == "1.2.12"
+    assert issue["_enrichments"]["Top Attr"] == 13
+
+
+@pytest.mark.asyncio
 async def test_export(mocker):
     """Test the export function."""
     fetch_issues_mock = mocker.patch("sentry2csv.sentry2csv.fetch_issues", new=CoroutineMock())
