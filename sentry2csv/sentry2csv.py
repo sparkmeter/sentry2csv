@@ -173,7 +173,7 @@ def main():
         metavar="HOST",
         nargs=1,
         required=False,
-        default=SENTRY_HOST,
+        default=[SENTRY_HOST],
         help=f"The Sentry host [default: {SENTRY_HOST}]",
     )
     parser.add_argument("organization", metavar="ORGANIZATION", nargs=1, help="The Sentry organization")
