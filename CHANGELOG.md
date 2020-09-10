@@ -7,6 +7,8 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 doesn't.
 
 ## [Unreleased]
+
+## [1.2.0] - 2020-09-09
 ### Added
 - Support self-hosted Sentry instances.
 
@@ -34,7 +36,8 @@ doesn't.
 ### Added
 - Initial version.
 
-[Unreleased]: https://github.com/olivierlacan/keep-a-changelog/compare/v1.1.3...HEAD
+[Unreleased]: https://github.com/olivierlacan/keep-a-changelog/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/sparkmeter/sentry2csv/compare/v1.1.3...v1.2.0
 [1.1.3]: https://github.com/sparkmeter/sentry2csv/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/sparkmeter/sentry2csv/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/sparkmeter/sentry2csv/compare/v1.0.0...v1.1.1
