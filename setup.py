@@ -63,7 +63,7 @@ setup(
             "mypy==0.931",
             "mypy-extensions==0.4.3",
             "types-setuptools==57.4.9",
-            "pylint==2.4.2",
+            "pylint==2.12.2",
             "pytest==7.0.1",
             "pytest-asyncio==0.18.1",
             "pytest-cov==2.8.1",
