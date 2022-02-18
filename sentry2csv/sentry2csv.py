@@ -7,10 +7,12 @@ import csv
 import logging
 import sys
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import aiohttp
-import pkg_resources  # part of setuptools
+import pkg_resources
+from multidict import MultiDict, MultiDictProxy
+from yarl import URL  # part of setuptools
 
 SENTRY_HOST = "sentry.io"
 
@@ -41,7 +43,7 @@ class Enrichment:
 
 async def fetch(
     session: aiohttp.ClientSession, url: str, params=None
-) -> Tuple[Union[List[Dict[str, Any]], Dict[str, Any]], Dict[str, Dict[str, str]]]:
+) -> Tuple[Union[List[Dict[str, Any]], Dict[str, Any]], MultiDictProxy[MultiDictProxy[Union[str, URL]]]]:
     """Fetch JSON from a URL."""
     logger.debug("Fetching %s with params: %s", url, params)
     async with session.get(url, params=params) as response:
@@ -79,9 +81,9 @@ async def fetch_issues(session: aiohttp.ClientSession, issues_url: str) -> List[
         logger.debug("Received page %s", resp)
         assert isinstance(resp, list), f"Bad response type. Expected list, got {type(resp)}"
         issues.extend(resp)
-        if links.get("next", {}).get("results") != "true":
+        if links.get("next", cast(MultiDictProxy[Union[str, URL]], MultiDict())).get("results") != "true":
             break
-        cursor = links["next"]["cursor"]
+        cursor = str(links["next"]["cursor"])
         page_count += 1
     return issues
 
