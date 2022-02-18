@@ -64,8 +64,8 @@ setup(
             "mypy-extensions==0.4.3",
             "types-setuptools==57.4.9",
             "pylint==2.4.2",
-            "pytest==5.2.2",
-            "pytest-asyncio==0.10.0",
+            "pytest==7.0.1",
+            "pytest-asyncio==0.18.1",
             "pytest-cov==2.8.1",
             "pytest-mock==1.11.2",
         ]
