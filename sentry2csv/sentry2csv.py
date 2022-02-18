@@ -93,7 +93,7 @@ def write_csv(filename: str, issues: List[Dict[str, Any]]):
     fieldnames = ["Error", "Location", "Details", "Events", "Users", "Notes", "Link"]
     if issues and "_enrichments" in issues[0]:
         fieldnames.extend(issues[0]["_enrichments"].keys())
-    with open(filename, "w") as outfile:
+    with open(filename, "w", encoding="utf-8") as outfile:
         writer = csv.DictWriter(outfile, fieldnames=fieldnames)
         writer.writeheader()
         for issue in issues:
