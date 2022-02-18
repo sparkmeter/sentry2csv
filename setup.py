@@ -9,7 +9,7 @@ with open("README.md", "r") as README:
     LONG_DESCRIPTION = README.read()
 
 REQUIREMENTS = [
-    "aiohttp==3.6.1",
+    "aiohttp==3.8.1",
 ]
 
 HERE = os.path.abspath(os.path.dirname(__file__))
@@ -57,11 +57,12 @@ setup(
     },
     extras_require={
         "dev": [
-            "aioresponses==0.6.1",
+            "aioresponses==0.7.3",
             "asynctest==0.13.0",
             "black==19.3b0",
-            "mypy==0.730",
-            "mypy-extensions==0.4.2",
+            "mypy==0.931",
+            "mypy-extensions==0.4.3",
+            "types-setuptools==57.4.9",
             "pylint==2.4.2",
             "pytest==5.2.2",
             "pytest-asyncio==0.10.0",
