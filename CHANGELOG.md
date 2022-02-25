@@ -6,7 +6,9 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)... except when it
 doesn't.
 
-## [Unreleased]
+## [1.2.1] - 2022-02-25
+### Added
+- Support Python 3.10
 
 ## [1.2.0] - 2020-09-09
 ### Added
