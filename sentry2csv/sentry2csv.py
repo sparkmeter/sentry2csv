@@ -27,6 +27,17 @@ class Sentry2CSVException(Exception):
         self.message = message
 
 
+@dataclass(frozen=True)
+class QueryParam:
+    """A key-value pair for the Sentry query string."""
+
+    field: str
+    value: str
+
+    def __repr__(self):
+        return f"{self.field}:{self.value}"
+
+
 @dataclass
 class Enrichment:
     """An enrichment."""
@@ -68,17 +79,25 @@ async def enrich_issue(
             issue["_enrichments"][enrichment.csv_field] = ""
 
 
-async def fetch_issues(session: aiohttp.ClientSession, issues_url: str) -> List[Dict[str, Any]]:
+async def fetch_issues(
+    session: aiohttp.ClientSession, issues_url: str, query_params: List[QueryParam]
+) -> List[Dict[str, Any]]:
     """Fetch all issues from Sentry."""
     page_count = 1
     issues: List[Dict[str, Any]] = []
     cursor = ""
+    query_str = " ".join(str(param) for param in query_params)
     while True:
         print(f"Fetching issues page {page_count}")
         resp, links = await fetch(
-            session, issues_url, params={"cursor": cursor, "statsPeriod": "", "query": "is:unresolved"}
+            session, issues_url, params={"cursor": cursor, "statsPeriod": "", "query": query_str}
         )
         logger.debug("Received page %s", resp)
+        if isinstance(resp, dict):
+            if "detail" in resp:
+                raise Sentry2CSVException(
+                    f"Failed to query Sentry. Received unexpected response: {resp['detail']}"
+                )
         assert isinstance(resp, list), f"Bad response type. Expected list, got {type(resp)}"
         issues.extend(resp)
         if links.get("next", cast(MultiDictProxy[Union[str, URL]], MultiDict())).get("results") != "true":
@@ -130,15 +149,20 @@ def write_csv(filename: str, issues: List[Dict[str, Any]]):
                 raise Sentry2CSVException("Unexpected API response. Run with -vv to debug.") from kerr
 
 
-async def export(
-    token: str, organization: str, project: str, enrich: Optional[List[Enrichment]] = None, host: str = SENTRY_HOST
+async def export(  # pylint:disable=too-many-arguments
+    token: str,
+    organization: str,
+    project: str,
+    query_params: List[QueryParam],
+    enrich: Optional[List[Enrichment]] = None,
+    host: str = SENTRY_HOST,
 ):
     """Export data from Sentry to CSV."""
     enrichments: List[Enrichment] = enrich or []
     issues_url = f"https://{host}/api/0/projects/{organization}/{project}/issues/"
     async with aiohttp.ClientSession(headers={"Authorization": f"Bearer {token}"}) as session:
         try:
-            issues = await fetch_issues(session, issues_url)
+            issues = await fetch_issues(session, issues_url, query_params)
             if enrichments:
                 print(f"Enriching {len(issues)} issues with event data...")
                 await asyncio.gather(
@@ -178,6 +202,13 @@ def main():
         default=[SENTRY_HOST],
         help=f"The Sentry host [default: {SENTRY_HOST}]",
     )
+    parser.add_argument(
+        "--environment",
+        metavar="ENVIRONMENT_NAME",
+        nargs=1,
+        required=False,
+        help="The name of the environment to query",
+    )
     parser.add_argument("organization", metavar="ORGANIZATION", nargs=1, help="The Sentry organization")
     parser.add_argument("project", metavar="PROJECT", nargs=1, help="The Sentry project")
     args = parser.parse_args()
@@ -188,9 +219,19 @@ def main():
     else:
         logger.setLevel(logging.WARNING)
     enrichments = extract_enrichment(args.enrich)
+    query_params: List[QueryParam] = [QueryParam("is", "unresolved")]
+    if args.environment:
+        query_params.append(QueryParam("environment", args.environment[0]))
     loop = asyncio.get_event_loop()
     loop.run_until_complete(
-        export(args.token[0], args.organization[0], args.project[0], enrich=enrichments, host=args.host[0])
+        export(
+            args.token[0],
+            args.organization[0],
+            args.project[0],
+            enrich=enrichments,
+            host=args.host[0],
+            query_params=query_params,
+        )
     )
 
 

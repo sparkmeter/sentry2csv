@@ -24,6 +24,11 @@ async def _fetch_mock(mocker):
     yield mocker.patch("sentry2csv.sentry2csv.fetch", new=CoroutineMock())
 
 
+@pytest.fixture(name="default_query_params")
+async def _default_query_params():
+    return [sentry2csv.QueryParam("is", "unresolved")]
+
+
 @pytest.mark.asyncio
 async def test_fetch_basic(session):
     """Test fetching."""
@@ -71,11 +76,11 @@ async def test_fetch_with_link(session):
 
 
 @pytest.mark.asyncio
-async def test_fetch_issues(mocker, session):
+async def test_fetch_issues(mocker, session, default_query_params):
     """Test issue fetching."""
     fetch_mock = mocker.patch("sentry2csv.sentry2csv.fetch", new=CoroutineMock())
     fetch_mock.return_value = ([1, 2, 3, 4], {})
-    issues = await sentry2csv.fetch_issues(session, "http://sentry.io/issues")
+    issues = await sentry2csv.fetch_issues(session, "http://sentry.io/issues", default_query_params)
     fetch_mock.assert_awaited_once_with(
         session, "http://sentry.io/issues", params={"cursor": "", "statsPeriod": "", "query": "is:unresolved"}
     )
@@ -83,14 +88,29 @@ async def test_fetch_issues(mocker, session):
 
 
 @pytest.mark.asyncio
-async def test_fetch_issues_multiple_pages(mocker, session):
+async def test_fetch_issues_additional_query_params(mocker, session, default_query_params):
+    """Test issue fetching."""
+    fetch_mock = mocker.patch("sentry2csv.sentry2csv.fetch", new=CoroutineMock())
+    fetch_mock.return_value = ([1, 2, 3, 4], {})
+    query_params = [*default_query_params, sentry2csv.QueryParam("environment", "production")]
+    issues = await sentry2csv.fetch_issues(session, "http://sentry.io/issues", query_params)
+    fetch_mock.assert_awaited_once_with(
+        session,
+        "http://sentry.io/issues",
+        params={"cursor": "", "statsPeriod": "", "query": "is:unresolved environment:production"},
+    )
+    assert issues == [1, 2, 3, 4]
+
+
+@pytest.mark.asyncio
+async def test_fetch_issues_multiple_pages(mocker, session, default_query_params):
     """Test issue fetching."""
     fetch_mock = mocker.patch("sentry2csv.sentry2csv.fetch", new=CoroutineMock())
     fetch_mock.side_effect = [
         ([1, 2, 3, 4], {"next": {"results": "true", "cursor": "12345:0:0"}}),
         ([5, 6, 7, 8], {"next": {"results": "false"}}),
     ]
-    issues = await sentry2csv.fetch_issues(session, "http://sentry.io/issues")
+    issues = await sentry2csv.fetch_issues(session, "http://sentry.io/issues", default_query_params)
     fetch_mock.assert_has_awaits(
         [
             call(
@@ -294,14 +314,16 @@ def test_write_csv_with_errors(mocker):
 
 
 @pytest.mark.asyncio
-async def test_export_custom_host(mocker):
+async def test_export_custom_host(mocker, default_query_params):
     """Test export using custom Sentry host."""
     custom_host = "sentry.example.com"
     fetch_issues_mock = mocker.patch("sentry2csv.sentry2csv.fetch_issues", new=CoroutineMock())
-    await sentry2csv.export("token", "organization", "project", None, custom_host)
+    await sentry2csv.export("token", "organization", "project", default_query_params, None, custom_host)
     fetch_issues_mock.assert_awaited_once()
     assert isinstance(fetch_issues_mock.call_args[0][0], aiohttp.client.ClientSession)
-    assert fetch_issues_mock.call_args[0][1] == f"https://{custom_host}/api/0/projects/organization/project/issues/"
+    assert (
+        fetch_issues_mock.call_args[0][1] == f"https://{custom_host}/api/0/projects/organization/project/issues/"
+    )
 
 
 @pytest.mark.asyncio
@@ -322,12 +344,12 @@ async def test_enrich_issue_custom_host(fetch_mock, session):
 
 
 @pytest.mark.asyncio
-async def test_export(mocker):
+async def test_export(mocker, default_query_params):
     """Test the export function."""
     fetch_issues_mock = mocker.patch("sentry2csv.sentry2csv.fetch_issues", new=CoroutineMock())
     fetch_issues_mock.return_value = ["issue1", "issue2"]
     write_mock = mocker.patch("sentry2csv.sentry2csv.write_csv")
-    await sentry2csv.export("token", "organization", "project")
+    await sentry2csv.export("token", "organization", "project", default_query_params)
     fetch_issues_mock.assert_awaited_once()
     assert isinstance(fetch_issues_mock.call_args[0][0], aiohttp.client.ClientSession)
     assert fetch_issues_mock.call_args[0][1] == "https://sentry.io/api/0/projects/organization/project/issues/"
@@ -335,7 +357,7 @@ async def test_export(mocker):
 
 
 @pytest.mark.asyncio
-async def test_export_with_enrichments(mocker):
+async def test_export_with_enrichments(mocker, default_query_params):
     """Test the export function."""
 
     async def enrich_issue_fn(ses, issue_to_enrich, enrs, host):  # pylint: disable=unused-argument
@@ -347,7 +369,7 @@ async def test_export_with_enrichments(mocker):
     enrich_issue_mock = mocker.patch("sentry2csv.sentry2csv.enrich_issue", new=CoroutineMock())
     enrich_issue_mock.side_effect = enrich_issue_fn
     write_mock = mocker.patch("sentry2csv.sentry2csv.write_csv")
-    await sentry2csv.export("token", "organization", "project", "enrichment_list")
+    await sentry2csv.export("token", "organization", "project", default_query_params, "enrichment_list")
     fetch_issues_mock.assert_awaited_once()
     assert isinstance(fetch_issues_mock.call_args[0][0], aiohttp.client.ClientSession)
     assert fetch_issues_mock.call_args[0][1] == "https://sentry.io/api/0/projects/organization/project/issues/"
