@@ -61,7 +61,7 @@ setup(
         "dev": [
             "aioresponses==0.7.3",
             "asynctest==0.13.0",
-            "black==19.3b0",
+            "black==22.3.0",
             "mypy==0.931",
             "mypy-extensions==0.4.3",
             "types-setuptools==57.4.9",
@@ -70,6 +70,7 @@ setup(
             "pytest-asyncio==0.18.1",
             "pytest-cov==2.8.1",
             "pytest-mock==1.11.2",
+            "typing-extensions==4.2.0",
         ]
     },
     python_requires=">=3.7",
